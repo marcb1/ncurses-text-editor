@@ -3,7 +3,7 @@
 #include <ncurses.h>
 #include <vector>
 #include <string>
-#include "../helpers.h"
+#include "helpers.h"
 
 
 class Buffer;

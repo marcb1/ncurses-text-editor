@@ -81,13 +81,10 @@ class Editor
     //current cursor location
     unsigned int        _x;
     unsigned int        _y;
-    std::string         cmd;
-    unsigned int        lowerbound;
-    bool                raiseflag;
-    std::string         _status; // string on status bar
-    BufferPtr           buff;
-
-    std::string         _fileName;
-
-    ThreadPtr           _drawThread;
+    std::string         _cmd;         //command entered by user
+    unsigned int        _lowerbound;  //lowerbound on screen, if screen rows < lines in text
+    std::string         _status;      //status bar string
+    BufferPtr           _pBuff;       //buffer object with text
+    std::string         _fileName;    //file name openned
+    ThreadPtr           _drawThread;  //thread that handles user input and draws on screen
 };

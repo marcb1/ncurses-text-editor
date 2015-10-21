@@ -3,9 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include "../helpers.h"
-
-using namespace std;
+#include "helpers.h"
 
 const std::string Editor::STATUS_VERSION = "1.0";
 
@@ -15,13 +13,12 @@ Editor::Editor(const std::string& data, const std::string& title):
   _mode(NORMAL),
   _x(0),
   _y(0),
-  cmd(""),
-  lowerbound(0),
-  raiseflag(false),
+  _cmd(""),
+  _lowerbound(0),
   _status("Normal Mode"),
-  buff(new Buffer())
+  _pBuff(new Buffer())
 {
-  buff->buildBuffer(data, '\n');
+  _pBuff->buildBuffer(data, '\n');
 }
 
 Editor::Editor(const std::string& fileName):
@@ -30,13 +27,12 @@ Editor::Editor(const std::string& fileName):
   _mode(NORMAL),
   _x(0),
   _y(0),
-  cmd(""),
-  lowerbound(0),
-  raiseflag(false),
+  _cmd(""),
+  _lowerbound(0),
   _status("Normal Mode"),
-  buff(new Buffer())
+  _pBuff(new Buffer())
 {
-  buff->buildBuffer(fileName);
+  _pBuff->buildBuffer(fileName);
 }
 
 void Editor::start()
@@ -68,16 +64,17 @@ void Editor::stopThread()
   updateMode(EXIT);
 }
 
+//update string that will be drawn on status bar
 void Editor::updateStatus()
 {
   std::stringstream status;
   switch(_mode)
   {
     case NORMAL:
-      if(cmd.empty())
+      if(_cmd.empty())
         status << _statusTitle << "\t" << STATUS_VERSION;
       else
-        status << cmd;
+        status << _cmd;
       break;
     case INSERT:
       status << "Insert Mode";
@@ -86,8 +83,8 @@ void Editor::updateStatus()
       status << "Exiting";
       break;
   }
-  status << "\tCOL: " << _x  << "\tLINE: " << lowerbound + _y;
-  status << " Y:" << _y << " SL: " << _screenLines << " LR" << lowerbound;
+  status << "\tCOL: " << _x  << "\tLINE: " << _lowerbound + _y;
+  status << " Y:" << _y << " SL: " << _screenLines << " LR" << _lowerbound;
   _status = status.str();
 }
 
@@ -97,11 +94,11 @@ void Editor::handleNormalModeInput(int c)
   switch(c)
   {
     case KEY_LEFT:
-    case 'l':
+    case 'h':
       moveLeft();
       break;
     case KEY_RIGHT:
-    case 'h':
+    case 'l':
       moveRight();
       break;
     case KEY_UP:
@@ -122,18 +119,20 @@ void Editor::handleNormalModeInput(int c)
       break;
     case 27:
       //esc/alt key clear command
-      cmd.clear();
+      _cmd.clear();
       break;
     case 127:
     case KEY_BACKSPACE:
     case KEY_DC:
       //remove last character from command
-      if(!cmd.empty())
-        cmd.erase(cmd.size()-1, 1);
+      if(!_cmd.empty())
+      {
+        _cmd.erase(_cmd.size()-1, 1);
+      }
       break;
     default:
       // Add character to command
-      cmd.append(1, char(c));
+      _cmd.append(1, char(c));
       break;
   }
 }
@@ -152,30 +151,30 @@ void Editor::handleInsertModeInput(int c)
       // The Backspace
       if(_x == 0 && _y > 0)
       {
-        _x = buff->lines[_y-1].length();
+        _x = _pBuff->lines[_y-1].length();
         // Bring line down
-        buff->lines[_y-1] += buff->lines[_y];
+        _pBuff->lines[_y-1] += _pBuff->lines[_y];
         // Delete the line
         deleteLine();
         moveUp();
       }
       else if(_x > 0)
       {
-        buff->lines[_y].erase(--_x, 1);
+        _pBuff->lines[_y].erase(--_x, 1);
       }
       break;
     case KEY_DC:
       // The Delete key
-      if(_x == buff->lines[_y].length() && _y != buff->lines.size()-1)
+      if(_x == _pBuff->lines[_y].length() && _y != _pBuff->lines.size()-1)
       {
         // Bring line down
-        buff->lines[_y] += buff->lines[_y+1];
+        _pBuff->lines[_y] += _pBuff->lines[_y+1];
         // Delete the line
         deleteLine(_y+1);
       }
       else
       {
-        buff->lines[_y].erase(_x, 1);
+        _pBuff->lines[_y].erase(_x, 1);
       }
       break;
     case KEY_LEFT:
@@ -193,15 +192,15 @@ void Editor::handleInsertModeInput(int c)
     case KEY_ENTER:
     case 10:
       // Bring rest of line down
-      if(_x < buff->lines[_y+lowerbound].length()-1)
+      if(_x < _pBuff->lines[_y+_lowerbound].length()-1)
       {
         // Put rest of line on new line
-        buff->insertLine(buff->lines[_y+lowerbound].substr(_x, buff->lines[_y+lowerbound].length()-_x), _y+1);
+        _pBuff->insertLine(_pBuff->lines[_y+_lowerbound].substr(_x, _pBuff->lines[_y+_lowerbound].length()-_x), _y+1);
         // Remove that part of the line
-        buff->lines[_y+lowerbound].erase(_x, buff->lines[_y+lowerbound].length()-_x);
+        _pBuff->lines[_y+_lowerbound].erase(_x, _pBuff->lines[_y+_lowerbound].length()-_x);
       }
       else
-        buff->insertLine("", _y+lowerbound+1);
+        _pBuff->insertLine("", _y+_lowerbound+1);
       moveDown();
       break;
     case KEY_BTAB:
@@ -210,11 +209,11 @@ void Editor::handleInsertModeInput(int c)
     case KEY_CATAB:
     case 9:
       // The tab
-      buff->lines[_y+lowerbound].insert(_x, 4, ' ');
+      _pBuff->lines[_y+_lowerbound].insert(_x, 4, ' ');
       _x+=4;
       break;
     default:
-      buff->lines[_y+lowerbound].insert(_x, 1, char(c));
+      _pBuff->lines[_y+_lowerbound].insert(_x, 1, char(c));
       _x++;
       break;
   }
@@ -222,26 +221,22 @@ void Editor::handleInsertModeInput(int c)
 }
 void Editor::deleteLine(int i)
 {
-  buff->removeLine(i);
+  _pBuff->removeLine(i);
 }
 void Editor::printStatusLine()
 {
-  if(raiseflag)
-    attron(A_BOLD);
   attron(A_REVERSE);
   mvprintw(_screenLines-1, 0, _status.c_str());
   clrtoeol();
-  if(raiseflag)
-    attroff(A_BOLD);
   attroff(A_REVERSE);
 }
 
 void Editor::saveFile()
 {
-  bool ret = buff->saveToFile(_fileName);
+  bool ret = _pBuff->saveToFile(_fileName);
   if(ret)
   {
-    _status = "Saved to file!";
+    _status = "Saved to file: " + _fileName;
   }
   else
   {
@@ -251,18 +246,21 @@ void Editor::saveFile()
 
 bool Editor::execCmd()
 {
-  if(cmd == ":q")
+  bool ret(false);
+  if(_cmd == ":q")
   {
+    ret = true;
     _mode = EXIT;
   }
-  else if(cmd == ":w")
+  else if(_cmd == ":w")
   {
+    ret = true;
     _mode = EXIT;
     saveFile();
   }
-
-  cmd = "";                       // Reset command buffer
-  return true;                    // Returns if command has executed successfully
+  // Reset command buffer
+  _cmd.clear();
+  return ret;
 }
 
 
@@ -306,7 +304,7 @@ void Editor::handleInput(int c)
 
 void Editor::deleteLine()
 {
-  buff->removeLine(_y);
+  _pBuff->removeLine(_y);
 }
 
 void Editor::initializeTerminal()
@@ -334,7 +332,7 @@ void Editor::moveLeft()
 
 void Editor::moveRight()
 {
-  if(_x+1 < _screenColumns && _x+1 <= buff->lines[_y+lowerbound].length())
+  if(_x+1 < _screenColumns && _x+1 <= _pBuff->lines[_y+_lowerbound].length())
   {
     _x++;
     move(_y, _x);
@@ -347,10 +345,10 @@ void Editor::moveUp()
   {
     _y--;
   }
-  else if(_y == 0 && lowerbound > 0)
+  else if(_y == 0 && _lowerbound > 0)
   {
     //wrap up
-    lowerbound--;
+    _lowerbound--;
   }
   else
   {
@@ -358,31 +356,32 @@ void Editor::moveUp()
     return;
   }
   //we can move up, so update x and move
-  if(_x >= buff->lines[_y+lowerbound].length())
-    _x = buff->lines[_y+lowerbound].length();
+  if(_x >= _pBuff->lines[_y+_lowerbound].length())
+    _x = _pBuff->lines[_y+_lowerbound].length();
   move(_y, _x);
 }
 
 void Editor::moveDown()
 {
   //_screenLines = status bar
-  if(_y < _screenLines-2 && _y+1 < buff->lines.size())
+  if(_y < _screenLines-2 && _y+1 < _pBuff->lines.size())
   {
+    //move cursor down
     _y++;
   }
   //+1 since y starts at 0. if buffer contains one line: 0+0+1 < 1
-  else if(lowerbound+_y+1 < buff->lines.size())
+  else if(_lowerbound+_y+1 < _pBuff->lines.size())
   {
-    raiseflag = true;
-    lowerbound++;
+    //keep cursor at bottom of the screen, but scroll down in the text file
+    _lowerbound++;
   }
   else
   {
     //can't move down
     return;
   }
-  if(_x >= buff->lines[_y].length())
-    _x = buff->lines[_y].length();
+  if(_x >= _pBuff->lines[_y].length())
+    _x = _pBuff->lines[_y].length();
   move(_y, _x);
 }
 
@@ -390,14 +389,14 @@ void Editor::printBuff()
 {
   unsigned int linesToPrint = 0;
   //_screenLines = status bar
-  for(unsigned int i = lowerbound; linesToPrint < _screenLines-1; i++, linesToPrint++)
+  for(unsigned int i = _lowerbound; linesToPrint < _screenLines-1; i++, linesToPrint++)
   {
-    if(i >= buff->size())
+    if(i >= _pBuff->size())
     {
     }
     else
     {
-      mvprintw(linesToPrint, 0, buff->lines[i].c_str());
+      mvprintw(linesToPrint, 0, _pBuff->lines[i].c_str());
     }
     clrtoeol();
   }

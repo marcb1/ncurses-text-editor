@@ -12,6 +12,10 @@ size_t Buffer::size() const
 bool Buffer::saveToFile(const std::string& fileName)
 {
   bool ret(false);
+  if(fileName.empty())
+  {
+    return ret;
+  }
   std::ofstream f(fileName.c_str());
   if(f.is_open())
   {
