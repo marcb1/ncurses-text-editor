@@ -14,7 +14,6 @@ Editor::Editor(const std::string& data, const std::string& title):
   _y(0),
   _cmd(""),
   _lowerbound(0),
-  _status("Normal Mode"),
   _pBuff(new Buffer())
 {
   _pBuff->buildBuffer(data, '\n');
@@ -27,12 +26,16 @@ Editor::Editor(const std::string& fileName):
   _y(0),
   _cmd(""),
   _lowerbound(0),
-  _status("Normal Mode"),
   _pBuff(new Buffer())
 {
   _pBuff->buildBuffer(fileName);
 }
 
+int Editor::getMode()
+{
+  std::lock_guard<std::recursive_mutex> lock(_mutex);
+  return _mode;
+}
 void Editor::start()
 {
   if(!_drawThread)
@@ -50,12 +53,10 @@ void Editor::join()
   _drawThread->join();
 }
 
-
-void Editor::updateMode(int mode)
+void Editor::updateMode(Mode mode)
 {
-  _mutex.lock();
-  mode = mode;
-  _mutex.unlock();
+  std::lock_guard<std::recursive_mutex> lock(_mutex);
+  _mode = mode;
 }
 void Editor::stopThread()
 {
@@ -63,9 +64,10 @@ void Editor::stopThread()
 }
 
 //update string that will be drawn on status bar
-void Editor::updateStatus()
+void Editor::updateStatus(const std::string& append)
 {
   std::stringstream status;
+  std::lock_guard<std::recursive_mutex> lock(_mutex);
   switch(_mode)
   {
     case NORMAL:
@@ -82,14 +84,14 @@ void Editor::updateStatus()
       break;
   }
   status << "\tCOL: " << _x  << "\tLINE: " << _lowerbound + _y;
-#ifdef DEBUG
   status << " Y:" << _y << " SL: " << _screenLines << " LR" << _lowerbound;
-#endif
-  _status = status.str();
+  status << append;
+  printStatusLine(status.str());
 }
 
 void Editor::handleNormalModeInput(int c)
 {
+  std::lock_guard<std::recursive_mutex> lock(_mutex);
   assert(_mode == NORMAL);
   switch(c)
   {
@@ -114,8 +116,7 @@ void Editor::handleNormalModeInput(int c)
       break;
     case KEY_ENTER:
     case 10:
-      //execute the current command
-      execCmd();
+      executeCommand();
       break;
     case 27:
       //esc/alt key clear command
@@ -140,6 +141,7 @@ void Editor::handleNormalModeInput(int c)
 
 void Editor::handleInsertModeInput(int c)
 {
+  std::lock_guard<std::recursive_mutex> lock(_mutex);
   switch(c)
   {
     case 27:
@@ -223,10 +225,10 @@ void Editor::deleteLine(int i)
 {
   _pBuff->removeLine(i);
 }
-void Editor::printStatusLine()
+void Editor::printStatusLine(const std::string& status)
 {
   attron(A_REVERSE);
-  mvprintw(_screenLines-1, 0, _status.c_str());
+  mvprintw(_screenLines-1, 0, status.c_str());
   clrtoeol();
   attroff(A_REVERSE);
 }
@@ -236,24 +238,26 @@ void Editor::saveFile()
   bool ret = _pBuff->saveToFile(_fileName);
   if(ret)
   {
-    _status = "Saved to file: " + _fileName;
+    updateStatus("Saved to file: ");
   }
   else
   {
-    _status = "Error: Cannot open file for writing!";
+    updateStatus( "Error: Cannot open file for writing!");
   }
 }
 
-bool Editor::execCmd()
+bool Editor::executeCommand()
 {
   bool ret(false);
   if(_cmd == ":q")
   {
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
     ret = true;
     _mode = EXIT;
   }
   else if(_cmd == ":w")
   {
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
     ret = true;
     _mode = EXIT;
     saveFile();
@@ -267,15 +271,14 @@ bool Editor::execCmd()
 void Editor::drawThread()
 {
   initializeTerminal();
-  while(_mode != EXIT)
+  int mode = getMode();
+  while(mode != EXIT)
   {
-    updateStatus();
-    printStatusLine();
     printBuff();
     //blocks on input
     int input = getch();
     handleInput(input);
-    usleep(50);
+    updateStatus();
   }
   //stop things and let object destruct
   refresh();
@@ -285,6 +288,7 @@ void Editor::drawThread()
 //These functions work correctly
 void Editor::handleInput(int c)
 {
+  std::lock_guard<std::recursive_mutex> lock(_mutex);
   switch(_mode)
   {
     case NORMAL:

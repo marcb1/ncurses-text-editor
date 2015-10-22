@@ -8,26 +8,27 @@ typedef std::shared_ptr<Editor> EditorPtr;
 class Editor
 {
   public:
-    bool upstatus;
-
     //construct with memory buffer and title
     Editor(const std::string& data, const std::string& title);
 
     //construct with file to open and edit
     Editor(const std::string& fileName);
 
-    //ncurses thread draw on screen and exit when use exits correctly
+    //ncurses thread draws on screen and exits when user exits correctly
     void start();
     void stopThread();
     void join();
 
-    void handleInput(int);
-    void printBuff();
-    void printStatusLine();
-    void updateStatus();
-
   private:
     typedef std::shared_ptr<std::thread> ThreadPtr;
+
+    //current state
+    enum Mode
+    { 
+      INSERT,
+      NORMAL,
+      EXIT
+    };
 
     void moveUp();
     void moveDown();
@@ -42,31 +43,18 @@ class Editor
     void handleInsertModeInput(int c);
     void handleNormalModeInput(int c);
 
-    void drawThread();
-
     void initializeTerminal();
+    void drawThread();
+    void handleInput(int);
 
-    void updateMode(int mode);
+    void printStatusLine(const std::string& status);
+    void updateStatus(const std::string& append="");
+    void printBuff();
 
-    //figure out what these do
-    std::string tos(int);
+    void updateMode(Mode mode);
+    int getMode();
 
-    bool execCmd();
-
-    //current state
-    enum State
-    { 
-      INSERT,
-      NORMAL,
-      EXIT
-    };
-
-    //editing a file, or a buffer from memory
-    enum EditorMode
-    {
-      FILE_EDIT,
-      BUFFER_EDIT
-    };
+    bool executeCommand();
 
     static const std::string STATUS_VERSION;
     
@@ -74,7 +62,7 @@ class Editor
     unsigned int          _screenColumns;
     unsigned int          _screenLines;
 
-    State                 _mode;
+    Mode                  _mode;
 
     std::recursive_mutex  _mutex;
 
@@ -83,8 +71,7 @@ class Editor
     unsigned int          _y;
     std::string           _cmd;         //command entered by user
     unsigned int          _lowerbound;  //lowerbound on screen, if screen rows < lines in text
-    std::string           _status;      //status bar string
     BufferPtr             _pBuff;       //buffer object with text
-    std::string           _fileName;    //file name openned
+    std::string           _fileName;    //file name oppened
     ThreadPtr             _drawThread;  //thread that handles user input and draws on screen
 };
