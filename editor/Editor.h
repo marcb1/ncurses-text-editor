@@ -70,21 +70,21 @@ class Editor
 
     static const std::string STATUS_VERSION;
     
-    const std::string   _statusTitle;
-    unsigned int        _screenColumns;
-    unsigned int        _screenLines;
+    const std::string     _statusTitle;
+    unsigned int          _screenColumns;
+    unsigned int          _screenLines;
 
-    State               _mode;
+    State                 _mode;
 
-    std::mutex          _mutex;
+    std::recursive_mutex  _mutex;
 
     //current cursor location
-    unsigned int        _x;
-    unsigned int        _y;
-    std::string         _cmd;         //command entered by user
-    unsigned int        _lowerbound;  //lowerbound on screen, if screen rows < lines in text
-    std::string         _status;      //status bar string
-    BufferPtr           _pBuff;       //buffer object with text
-    std::string         _fileName;    //file name openned
-    ThreadPtr           _drawThread;  //thread that handles user input and draws on screen
+    unsigned int          _x;
+    unsigned int          _y;
+    std::string           _cmd;         //command entered by user
+    unsigned int          _lowerbound;  //lowerbound on screen, if screen rows < lines in text
+    std::string           _status;      //status bar string
+    BufferPtr             _pBuff;       //buffer object with text
+    std::string           _fileName;    //file name openned
+    ThreadPtr             _drawThread;  //thread that handles user input and draws on screen
 };

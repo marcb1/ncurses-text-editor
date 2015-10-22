@@ -8,7 +8,6 @@
 const std::string Editor::STATUS_VERSION = "1.0";
 
 Editor::Editor(const std::string& data, const std::string& title):
-  upstatus(true),
   _statusTitle(title),
   _mode(NORMAL),
   _x(0),
@@ -22,7 +21,6 @@ Editor::Editor(const std::string& data, const std::string& title):
 }
 
 Editor::Editor(const std::string& fileName):
-  upstatus(true),
   _statusTitle(fileName),
   _mode(NORMAL),
   _x(0),
@@ -84,7 +82,9 @@ void Editor::updateStatus()
       break;
   }
   status << "\tCOL: " << _x  << "\tLINE: " << _lowerbound + _y;
+#ifdef DEBUG
   status << " Y:" << _y << " SL: " << _screenLines << " LR" << _lowerbound;
+#endif
   _status = status.str();
 }
 
@@ -269,11 +269,8 @@ void Editor::drawThread()
   initializeTerminal();
   while(_mode != EXIT)
   {
-    if(upstatus)
-    {
-      updateStatus();
-      printStatusLine();
-    }
+    updateStatus();
+    printStatusLine();
     printBuff();
     //blocks on input
     int input = getch();
@@ -288,7 +285,6 @@ void Editor::drawThread()
 //These functions work correctly
 void Editor::handleInput(int c)
 {
-  upstatus = true;
   switch(_mode)
   {
     case NORMAL:
