@@ -274,11 +274,13 @@ void Editor::drawThread()
   int mode = getMode();
   while(mode != EXIT)
   {
+    //print status line first, since getch blocks
+    updateStatus();
     printBuff();
     //blocks on input
     int input = getch();
     handleInput(input);
-    updateStatus();
+    mode = getMode();
   }
   //stop things and let object destruct
   refresh();
