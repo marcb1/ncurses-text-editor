@@ -1,3 +1,4 @@
 *core*
 editor_main
 *.o
+*.a

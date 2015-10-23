@@ -9,5 +9,8 @@ OBJ_EDITOR = $(SRC_EDITOR:.cpp=.o)
 text_editor:$(OBJ_EDITOR)
 	g++ $(CFLAGS) $(OBJ_EDITOR) -lncurses -lpthread -o editor_main
 
+editor_lib:$(OBJ_EDITOR)
+	ar rcs libeditor.a $(OBJ_EDITOR)
+
 clean:
 	-$(RM) *.o encrypt_main client_main server_main
