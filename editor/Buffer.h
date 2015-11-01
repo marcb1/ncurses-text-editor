@@ -24,6 +24,7 @@ class Buffer
     void buildBuffer(const std::string& fileName);
 
     bool saveToFile(const std::string& fileName= "untitled");
+    void saveToString(std::stringstream& stream) const;
 
     void insertLine(const std::string& line, int loc);
     void appendLine(const std::string& line);

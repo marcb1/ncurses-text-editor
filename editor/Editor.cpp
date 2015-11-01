@@ -387,6 +387,13 @@ void Editor::moveDown()
   move(_y, _x);
 }
 
+std::string Editor::getBufferAsString() const
+{
+  std::stringstream ss;
+  _pBuff->saveToString(ss);
+  return ss.str();
+}
+
 void Editor::printBuff()
 {
   unsigned int linesToPrint = 0;

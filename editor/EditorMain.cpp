@@ -10,5 +10,7 @@ int main(int argc, char** argv)
   EditorPtr ed(new Editor(argv[1]));
   ed->start();
   ed->join();
+  std::string buff = ed->getBufferAsString();
+  std::cout << buff << std::endl;
   return 0;
 }

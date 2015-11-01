@@ -9,6 +9,16 @@ size_t Buffer::size() const
   return lines.size();
 }
 
+void Buffer::saveToString(std::stringstream& stream) const
+{
+    LineSetConstIterator iter;
+    iter = lines.begin();
+    for(; iter != lines.end(); iter++)
+    {
+      stream << *iter << std::endl;
+    }
+}
+
 bool Buffer::saveToFile(const std::string& fileName)
 {
   bool ret(false);

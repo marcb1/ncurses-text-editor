@@ -18,6 +18,7 @@ class Editor
     void start();
     void stopThread();
     void join();
+    std::string getBufferAsString() const;
 
   private:
     typedef std::shared_ptr<std::thread> ThreadPtr;
@@ -39,6 +40,7 @@ class Editor
     void deleteLine(int i);
 
     void saveFile();
+
 
     void handleInsertModeInput(int c);
     void handleNormalModeInput(int c);
