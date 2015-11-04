@@ -2,7 +2,7 @@ RM = rm -fv
 
 CPPFLAGS += -ggdb -Wall -std=c++0x -I=. -I=editor/ 
 
-all: text_editor
+all: text_editor editor_lib
 
 SRC_EDITOR=editor/Editor.cpp editor/Buffer.cpp editor/EditorMain.cpp
 OBJ_EDITOR = $(SRC_EDITOR:.cpp=.o)
