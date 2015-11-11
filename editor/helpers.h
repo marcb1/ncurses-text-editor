@@ -47,25 +47,41 @@ inline bool writeSSL(const std::string& data, SSL* sslHandle)
     std::cerr << "Request to write 0 bytes, ignoring" << std::endl;
     return false;
   }
-  int ret = SSL_write(sslHandle, data.c_str(), data.size());
+  unsigned int ret = SSL_write(sslHandle, data.c_str(), data.length());
+  assert(ret == data.length());
   return (ret > 0);
 }
 
+inline std::string string_to_hex(const std::string& input)
+{
+    static const char* const lut = "0123456789ABCDEF";
+    size_t len = input.length();
+
+    std::string output;
+    output.reserve(2 * len);
+    for (size_t i = 0; i < len; ++i)
+    {
+        const unsigned char c = input[i];
+        output.push_back(lut[c >> 4]);
+        output.push_back(lut[c & 15]);
+    }
+    return output;
+}
 
 inline std::string readSocket(SSL* sslHandle)
 {
-std::string dataRead;
-  unsigned int maxRead = MAX_READ;
+  // this is needed because the read is blocking, so we need to read everything in one chunk
+  unsigned int maxRead = 1001;
+  char readBuffer[maxRead];
 
-  std::string readBuffer('a', maxRead);
-  int readb = SSL_read(sslHandle, (char *)readBuffer.c_str(), maxRead-1);
+  int readb = SSL_read(sslHandle, readBuffer, maxRead-1);
   if(readb <= 0)
   {
     std::cout << "Cannot read from socket; closing connection..." << std::endl;
-    return dataRead;
+    return std::string();
   }
-  dataRead = readBuffer.substr(0, readb);
-  return dataRead;
+  readBuffer[readb] = '\0';
+  return std::string(readBuffer, readb);
 }
 
 //Open SSL wrapper functions
@@ -126,7 +142,7 @@ inline void hextoChar(unsigned char* c, int size)
 
 inline void printErrno()
 {
-   printf("Errno()! %s\n", strerror(errno));
+  printf("Errno()! %s\n", strerror(errno));
 }
 
 inline off_t getFileSize(int fd)
@@ -142,24 +158,24 @@ inline off_t getFileSize(int fd)
 
 inline std::string simpleSHA256(const std::string& val)
 {
-    unsigned char* input = convertStringToChar(val);
-    std::string ret;
+  unsigned char* input = convertStringToChar(val);
+  std::string ret;
 
-    SHA256_CTX context;
-    if(!SHA256_Init(&context))
-      return ret;
-
-    if(!SHA256_Update(&context, input, val.length()))
-      return ret;
-
-    unsigned char md[SHA256_DIGEST_LENGTH];
-    if(!SHA256_Final(md, &context))
-      return ret;
-
-    ret = convertCharToString(md);
-    delete input;
-
+  SHA256_CTX context;
+  if(!SHA256_Init(&context))
     return ret;
+
+  if(!SHA256_Update(&context, input, val.length()))
+    return ret;
+
+  unsigned char md[SHA256_DIGEST_LENGTH];
+  if(!SHA256_Final(md, &context))
+    return ret;
+
+  ret = convertCharToString(md);
+  delete input;
+
+  return ret;
 }
 
 //Class that writes to log file and cleans up file descriptor correctly
@@ -167,6 +183,7 @@ class Logger
 {
   private:
     std::ofstream logFile;
+
   public:
     Logger(const std::string& fileName):
       logFile(fileName.c_str(), std::ios_base::trunc)
@@ -174,14 +191,13 @@ class Logger
     std::cout << "opening log file: " << fileName << "; if this file already exists, it will overwritten..." << std::endl;
   }
 
-  ~Logger()
-  {
-    logFile.close();
-  }
+    ~Logger()
+    {
+      logFile.close();
+    }
 
-  void append(const std::string& logText)
-  {
-    logFile << logText << std::flush;
-  }
+    void append(const std::string& logText)
+    {
+      logFile << logText << std::flush;
+    }
 };
-

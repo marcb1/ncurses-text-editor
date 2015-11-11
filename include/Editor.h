@@ -7,7 +7,7 @@ typedef std::shared_ptr<Editor> EditorPtr;
 
 class Editor
 {
-  public:
+public:
     //construct with memory buffer and title
     Editor(const std::string& data, const std::string& title);
 
@@ -20,15 +20,15 @@ class Editor
     void join();
     std::string getBufferAsString() const;
 
-  private:
+private:
     typedef std::shared_ptr<std::thread> ThreadPtr;
 
     //current state
     enum Mode
     { 
-      INSERT,
-      NORMAL,
-      EXIT
+        INSERT,
+        NORMAL,
+        EXIT
     };
 
     void moveUp();
@@ -44,6 +44,8 @@ class Editor
 
     void handleInsertModeInput(int c);
     void handleNormalModeInput(int c);
+    void handleNormalMode(int c);
+    void handleNormalModeCommand(int c);
 
     void initializeTerminal();
     void drawThread();
@@ -59,7 +61,7 @@ class Editor
     bool executeCommand();
 
     static const std::string STATUS_VERSION;
-    
+
     const std::string     _statusTitle;
     unsigned int          _screenColumns;
     unsigned int          _screenLines;
