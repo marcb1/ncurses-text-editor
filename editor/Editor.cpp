@@ -327,7 +327,7 @@ bool Editor::executeCommand()
             refresh();
             endwin();
             int ret = execlp("sshpass", "sshpass", "-p", _pBuff->lines[_y].c_str(), "ssh", 
-                    "-oStrictHostKeyChecking=no", "test@localhost", NULL);
+                    "-oStrictHostKeyChecking=no", arguments[2].c_str(), NULL);
             if(ret < 0)
             {
                 std::cerr << "exec failed! returning to editor..." << std::endl;
