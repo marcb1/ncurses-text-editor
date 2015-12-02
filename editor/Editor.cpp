@@ -9,6 +9,7 @@ const std::string Editor::STATUS_VERSION = "1.0";
 
 Editor::Editor(const std::string& data, const std::string& title):
     _statusTitle(title),
+    _showPass(false),
     _mode(NORMAL),
     _x(0),
     _y(0),
@@ -21,6 +22,7 @@ Editor::Editor(const std::string& data, const std::string& title):
 
 Editor::Editor(const std::string& fileName):
     _statusTitle(fileName),
+    _showPass(false),
     _mode(NORMAL),
     _x(0),
     _y(0),
@@ -156,6 +158,8 @@ void Editor::handleNormalMode(int c)
         case 'i':
             _mode = INSERT;
             break;
+        case 'p':
+            _showPass = !_showPass;
         case KEY_ENTER:
         case 10:
             break;
@@ -308,8 +312,8 @@ bool Editor::executeCommand()
     {
         std::lock_guard<std::recursive_mutex> lock(_mutex);
         ret = true;
-        _mode = EXIT;
         saveFile();
+        _mode = EXIT;
     }
     else if(_cmd == ":x")
     {
@@ -326,7 +330,12 @@ bool Editor::executeCommand()
         {
             refresh();
             endwin();
-            int ret = execlp("sshpass", "sshpass", "-p", _pBuff->lines[_y].c_str(), "ssh", 
+            std::string pass = _pBuff->lines[_y];
+            std::string::size_type loc = pass.find("pass: ");
+            if (loc == 0)
+                   pass.erase(0, 6);
+
+            int ret = execlp("sshpass", "sshpass", "-p", pass.c_str(), "ssh", 
                     "-oStrictHostKeyChecking=no", arguments[2].c_str(), NULL);
             if(ret < 0)
             {
@@ -350,7 +359,7 @@ void Editor::drawThread()
     {
         //print status line first, since getch blocks
         updateStatus();
-        printBuff();
+        printBuff(_showPass);
         //blocks on input
         int input = getch();
         handleInput(input);
@@ -468,7 +477,7 @@ std::string Editor::getBufferAsString() const
     return ss.str();
 }
 
-void Editor::printBuff()
+void Editor::printBuff(bool showPass)
 {
     unsigned int linesToPrint = 0;
     //_screenLines = status bar
@@ -479,7 +488,15 @@ void Editor::printBuff()
         }
         else
         {
-            mvprintw(linesToPrint, 0, _pBuff->lines[i].c_str());
+            const std::string& line = _pBuff->lines[i];
+            if(line.find("pass:") == 0 &&  !showPass)
+            {
+                mvprintw(linesToPrint, 0, "pass: *******");
+            }
+            else
+            {
+                mvprintw(linesToPrint, 0, line.c_str());
+            }
         }
         clrtoeol();
     }

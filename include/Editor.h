@@ -53,7 +53,7 @@ private:
 
     void printStatusLine(const std::string& status);
     void updateStatus(const std::string& append="");
-    void printBuff();
+    void printBuff(bool showPass = false);
 
     void updateMode(Mode mode);
     int getMode();
@@ -65,6 +65,7 @@ private:
     const std::string     _statusTitle;
     unsigned int          _screenColumns;
     unsigned int          _screenLines;
+    bool                  _showPass;
 
     Mode                  _mode;
 
