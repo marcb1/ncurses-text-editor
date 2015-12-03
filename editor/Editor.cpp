@@ -331,12 +331,16 @@ bool Editor::executeCommand()
             refresh();
             endwin();
             std::string pass = _pBuff->lines[_y];
+            std::string host = _pBuff->lines[_y-1];
             std::string::size_type loc = pass.find("pass: ");
             if (loc == 0)
                    pass.erase(0, 6);
+            loc = host.find("ssh ");
+            if(loc == 0)
+                host.erase(0, 4);
 
             int ret = execlp("sshpass", "sshpass", "-p", pass.c_str(), "ssh", 
-                    "-oStrictHostKeyChecking=no", arguments[2].c_str(), NULL);
+                    "-oStrictHostKeyChecking=no", host.c_str(), NULL);
             if(ret < 0)
             {
                 std::cerr << "exec failed! returning to editor..." << std::endl;
@@ -491,7 +495,7 @@ void Editor::printBuff(bool showPass)
             const std::string& line = _pBuff->lines[i];
             if(line.find("pass:") == 0 &&  !showPass)
             {
-                mvprintw(linesToPrint, 0, "pass: *******");
+                mvprintw(linesToPrint, 0, "pass: ");
             }
             else
             {
